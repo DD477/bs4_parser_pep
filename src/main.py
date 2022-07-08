@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import defaultdict
 from urllib.parse import urljoin
 
 import requests_cache
@@ -7,7 +8,9 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
+from constants import (BASE_DIR, EXPECTED_STATUS, LASTEST_VERSIONS_RESULT,
+                       MAIN_DOC_URL, MAIN_PEP_URL, PEP_RESULT, RE_PATTERN,
+                       WHATS_NEW_RESULT)
 from outputs import control_output
 from utils import find_tag, get_response
 
@@ -16,7 +19,7 @@ def whats_new(session):
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
     response = get_response(session, whats_new_url)
     if response is None:
-        return
+        return None
     soup = BeautifulSoup(response.text, features='lxml')
 
     main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
@@ -28,7 +31,6 @@ def whats_new(session):
     sections_by_python = div_with_ul.find_all(
         'li', attrs={'class': 'toctree-l1'})
 
-    results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for section in tqdm(sections_by_python):
         version_a_tag = find_tag(section, 'a')
         version_link = urljoin(whats_new_url, version_a_tag['href'])
@@ -39,17 +41,17 @@ def whats_new(session):
         h1 = find_tag(soup, 'h1')
         dl = find_tag(soup, 'dl')
         dl_text = dl.text.replace('\n', ' ')
-        results.append(
+        WHATS_NEW_RESULT.append(
             (version_link, h1.text, dl_text)
         )
 
-    return results
+    return WHATS_NEW_RESULT
 
 
 def latest_versions(session):
     response = get_response(session, MAIN_DOC_URL)
     if response is None:
-        return
+        return None
     soup = BeautifulSoup(response.text, 'lxml')
     sidebar = find_tag(soup, 'div', attrs={'class': 'sphinxsidebarwrapper'})
     ul_tags = sidebar.find_all('ul')
@@ -60,26 +62,24 @@ def latest_versions(session):
     else:
         raise Exception('Ничего не нашлось')
 
-    results = [('Ссылка на документацию', 'Версия', 'Статус')]
-    pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
     for a_tag in a_tags:
         link = a_tag['href']
-        text_match = re.search(pattern, a_tag.text)
+        text_match = re.search(RE_PATTERN, a_tag.text)
         if text_match is not None:
             version, status = text_match.groups()
         else:
             version, status = a_tag.text, ''
-        results.append(
+        LASTEST_VERSIONS_RESULT.append(
             (link, version, status)
         )
-    return results
+    return LASTEST_VERSIONS_RESULT
 
 
 def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
     response = get_response(session, downloads_url)
     if response is None:
-        return
+        return None
     soup = BeautifulSoup(response.text, features='lxml')
     main_tag = find_tag(soup, 'div', {'role': 'main'})
     table_tag = find_tag(main_tag, 'table', {'class': 'docutils'})
@@ -102,21 +102,13 @@ def pep(session):
     def get_page_status(link):
         response = get_response(session, link)
         if response is None:
-            return
+            return None
         soup = BeautifulSoup(response.text, features='lxml')
         dl = find_tag(soup, 'dl')
 
         return find_tag(
             dl, tag='', string='Status'
         ).parent.find_next_sibling().text
-
-    def count_stasuses(page_status, statuses_per_type={}):
-        if page_status in statuses_per_type.keys():
-            statuses_per_type[page_status] += 1
-        else:
-            statuses_per_type[page_status] = 1
-
-        return statuses_per_type
 
     def check_pep_status(table_status, page_status, link):
         if page_status not in EXPECTED_STATUS[table_status]:
@@ -130,14 +122,14 @@ def pep(session):
 
     response = get_response(session, MAIN_PEP_URL)
     if response is None:
-        return
+        return None
     soup = BeautifulSoup(response.text, features='lxml')
     numerical_index = find_tag(
         soup, 'section', attrs={'id': 'numerical-index'}
     )
     tbody = find_tag(numerical_index, 'tbody')
     tr = tbody.find_all('tr')
-    result = [('Статус', 'Количество')]
+    statuses_per_type = defaultdict(int)
 
     for item in tqdm(tr):
         td = find_tag(item, 'td')
@@ -145,13 +137,14 @@ def pep(session):
         link = urljoin(MAIN_PEP_URL, td.find_next_sibling().a['href'])
         page_status = get_page_status(link)
         check_pep_status(table_status, page_status, link)
-        statuses_per_type = count_stasuses(page_status)
+        statuses_per_type[page_status] += 1
 
-    for key, value in statuses_per_type.items():
-        result.append((key, value))
-    result.append(('Total', sum(statuses_per_type.values())))
+    PEP_RESULT.extend(
+        [(status, statuses_per_type[status]) for status in statuses_per_type]
+    )
+    PEP_RESULT.append(('Total', sum(statuses_per_type.values())))
 
-    return result
+    return PEP_RESULT
 
 
 MODE_TO_FUNCTION = {
