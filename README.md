@@ -34,7 +34,7 @@ source venv/bin/activate
 - Обновить менеджер пакетов (pip) 
 
 ```
-python3 -m pip install --upgrade pip
+pip install --upgrade pip
 ```
 
 
