@@ -6,10 +6,10 @@
 ### Используемые технологии:
 
 [![Python](https://img.shields.io/badge/-Python%203.10.4-464646?style=flat-square&logo=Python)](https://www.python.org/)
-[![BeautifulSoup](https://img.shields.io/badge/-BeautifulSoup%204.11.1-464646?style=flat-square)](https://pypi.org/project/beautifulsoup4/)
-[![lxml](https://img.shields.io/badge/-lxml%204.9.1-464646?style=flat-square)](https://pypi.org/project/lxml/)
-[![PrettyTable](https://img.shields.io/badge/-PrettyTable%203.3.0-464646?style=flat-square)](https://pypi.org/project/prettytable/)
-[![requests-cache](https://img.shields.io/badge/-requests_cache%200.9.5-464646?style=flat-square)](https://pypi.org/project/requests-cache/)
+[![BeautifulSoup](https://img.shields.io/badge/-BeautifulSoup%204.9.3-464646?style=flat-square)](https://pypi.org/project/beautifulsoup4/)
+[![lxml](https://img.shields.io/badge/-lxml%204.6.3-464646?style=flat-square)](https://pypi.org/project/lxml/)
+[![PrettyTable](https://img.shields.io/badge/-PrettyTable%202.1.0-464646?style=flat-square)](https://pypi.org/project/prettytable/)
+[![requests-cache](https://img.shields.io/badge/-requests_cache%200.6.3-464646?style=flat-square)](https://pypi.org/project/requests-cache/)
 [![tqdm](https://img.shields.io/badge/-tqdm%204.64.0-464646?style=flat-square)](https://pypi.org/project/tqdm/)
 
 ### Как запустить проект:
